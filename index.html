@@ -42,7 +42,7 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
 .btn.red{background:var(--danger);color:#fff}
 .row{display:flex;gap:8px}.row>*{flex:1}
-.item{display:flex;justify-between:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);gap:8px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);gap:8px}
 .item:first-child{border-top:none}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--accent2);color:var(--accent);margin-right:6px}
 .muted{color:var(--muted);font-size:13px}
@@ -227,7 +227,7 @@ function setupCard(mk,edit){
    <input id="sGoal" type="number" inputmode="decimal" min="0" placeholder="e.g. 3000" value="${m.savingsGoal||''}" oninput="previewSetup()"></div>
    <div class="note" id="sPrev">Enter your amount to see the daily limit.</div>
    <button class="btn" onclick="saveSetup()">${edit?'Save changes':'Start tracking'}</button>
-   ${edit?'<button class="btn ghost" onclick="go(\'today\')">Cancel</button>':''}
+   ${edit?'<button class="btn ghost" onclick="go('today')">Cancel</button>':''}
   </div>`;
 }
 function previewSetup(){
@@ -313,7 +313,7 @@ function addExpense(){
   db.expenses.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date,amount:amt,cat,note});
   save();render();
   const c=compute(mk);
-  if(c.today&&c.today.spent>Math.max(0,c.today.limit)+0.005) toast('⚠️ Over today\'s limit');
+  if(c.today&&c.today.spent>Math.max(0,c.today.limit)+0.005) toast('⚠️ Over today's limit');
   checkPending();
 }
 function delExpense(id){
@@ -462,24 +462,36 @@ function vWelcome(){
     <div style="font-size:54px">💸</div><h2 style="margin:6px 0">Daily Cost Calculator</h2>
     <p class="muted">Set your monthly money, get a daily spending limit, see where it goes and save more.</p>
     <button class="btn" onclick="startGuest()">Continue without account</button>
-    ${cloudEnabled()?'<button class="btn ghost" onclick="showLogin()">Sign in / Create account</button>':''}
+    ${cloudEnabled()?'<button class="btn ghost" onclick="showLogin('signup')">Create account / Sign in</button>':''}
     <p class="muted" style="margin-top:14px">Guest mode keeps your data on this device only. You can sign in later and nothing is lost.</p>
   </div>`;
 }
 function startGuest(){setMode('guest');db=loadFrom(GUEST_KEY);view='today';render();checkPending();}
 function accountCard(){
   if(mode==='cloud'){
-    const em=fb&&fb.user&&fb.user.email?fb.user.email:'';
-    const st={synced:'Synced ✅',saving:'Saving…',offline:'Offline (will sync later)',loading:'Loading…',idle:'Ready'}[syncState]||'';
-    return `<div class="card"><h3>Account</h3>
-      <div class="muted">Signed in${em?' as <b>'+esc(em)+'</b>':''}. Your data is saved online and works on all your devices.</div>
-      <div class="item"><span>Status</span><b>${st}</b></div>
+    const u = fb && fb.user;
+    const em = u && u.email ? u.email : '';
+    const name = u && u.displayName ? u.displayName : '';
+    const photo = u && u.photoURL ? u.photoURL : '';
+    const st = {synced:'Synced ✅',saving:'Saving…',offline:'Offline (will sync later)',loading:'Loading…',idle:'Ready'}[syncState]||'';
+    
+    return `<div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        ${photo ? `<img src="${esc(photo)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover" alt="Profile">` : `<div style="width:48px;height:48px;border-radius:50%;background:var(--accent2);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px">${name ? esc(name[0].toUpperCase()) : '👤'}</div>`}
+        <div>
+          <h3 style="margin:0">${name ? esc(name) : 'Account'}</h3>
+          <div class="muted">${em ? esc(em) : ''}</div>
+        </div>
+      </div>
+      <div class="muted">Your data is saved online and works on all your devices.</div>
+      <div class="item" style="margin-top:8px"><span>Status</span><b>${st}</b></div>
       <button class="btn ghost" onclick="signOutUser()">Sign out</button>
-      <button class="btn red" onclick="deleteAccount()">Delete my account</button></div>`;
+      <button class="btn red" onclick="deleteAccount()">Delete my account</button>
+    </div>`;
   }
   return `<div class="card"><h3>Account</h3>
     <div class="muted">You are using <b>guest mode</b>: your data is saved only on this device. Sign in to keep it safe online and use it on other devices. What you entered so far moves to your account.</div>
-    <button class="btn" onclick="showLogin()">Sign in / Create account</button></div>`;
+    <button class="btn" onclick="showLogin('signup')">Create Account / Sign In</button></div>`;
 }
 
 /* ---------- cloud (Firebase): login + sync ---------- */
@@ -544,7 +556,16 @@ function mergeLocalWins(cloud,local){   // used after offline edits: nothing add
 function setStatus(s){syncState=s;renderStatus();}
 function renderStatus(){
   const el=$('#status'); if(!el) return;
-  el.textContent=mode==='guest'?'👤 Guest':mode==='cloud'?({synced:'☁️ Synced',saving:'☁️ Saving…',offline:'📴 Offline',loading:'⏳ Loading',idle:'☁️'}[syncState]||''):'';
+  if(mode === 'guest'){
+    el.textContent = '👤 Guest';
+  } else if(mode === 'cloud'){
+    const u = fb && fb.user;
+    const name = (u && u.displayName) ? u.displayName.split(' ')[0] : ((u && u.email) ? u.email.split('@')[0] : 'Account');
+    const st = {synced:'✅', saving:'⏳', offline:'📴', loading:'⏳', idle:''}[syncState] || '';
+    el.textContent = `👤 ${name} ${st}`;
+  } else {
+    el.textContent = '';
+  }
 }
 async function loadFirebase(){
   const base='https://www.gstatic.com/firebasejs/10.14.1/';
@@ -570,6 +591,7 @@ function authChanged(user){
     try{if(lastUid)localStorage.removeItem(cacheKey(lastUid));localStorage.removeItem(UID_KEY);localStorage.removeItem(DIRTY_KEY);}catch(e){}
     lastUid=null;connectedUid=null;synced={};loadingCloud=false;setMode(null);db=fresh();view='today';render();
   }
+  renderStatus();
 }
 async function fetchCloud(){
   const {F,fs,user}=fb, out={};
@@ -653,33 +675,61 @@ const AUTH_ERR={
   'auth/operation-not-allowed':'This login method is not turned on in Firebase.','auth/requires-recent-login':'For safety, sign out, sign in again, then retry.'
 };
 const authMsg=e=>{const m=AUTH_ERR[e&&e.code];return m===''?'':(m||'Something went wrong. Try again.');};
-function showLogin(){
+function showLogin(tab = 'signup'){
   if(!cloudEnabled()){
     openModal('<h2>Online accounts are not set up yet</h2><p class="muted">The owner of this site needs to add the Firebase settings first. Guest mode works fine in the meantime.</p><button class="btn" onclick="closeModal()">OK</button>');
     return;
   }
-  ensureFirebase().catch(()=>{});   // preload so the Google popup can open instantly on tap
-  openModal(`<h2>Sign in to sync</h2><p class="muted">Your data is saved online and works on every device.</p>
+  ensureFirebase().catch(()=>{});
+  const isSignup = tab === 'signup';
+  openModal(`
+    <div style="display:flex;gap:12px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:8px">
+      <button class="linkbtn" style="font-weight:${isSignup?'700':'400'};color:${isSignup?'var(--accent)':'var(--muted)'};padding:4px 0;width:auto" onclick="showLogin('signup')">Create Account</button>
+      <button class="linkbtn" style="font-weight:${!isSignup?'700':'400'};color:${!isSignup?'var(--accent)':'var(--muted)'};padding:4px 0;width:auto" onclick="showLogin('signin')">Sign In</button>
+    </div>
+    <h2>${isSignup ? 'Create your Account' : 'Welcome Back'}</h2>
+    <p class="muted">Your data is saved online and works on all your devices.</p>
     <button class="btn ghost" onclick="googleLogin()">Continue with Google</button>
     <div class="or">or use email</div>
-    <input id="aEmail" type="email" placeholder="Email" autocomplete="email">
-    <input id="aPass" type="password" placeholder="Password (at least 6 characters)" autocomplete="current-password" style="margin-top:8px">
-    <div class="row"><button class="btn" onclick="emailAuth('in')">Sign in</button><button class="btn ghost" onclick="emailAuth('up')">Create account</button></div>
-    <button class="linkbtn" onclick="resetPass()">Forgot password?</button>
-    <button class="linkbtn" onclick="closeModal()">Cancel</button>`);
+    ${isSignup ? '<label>Full Name</label><input id="aName" type="text" placeholder="e.g. Faisal Ahmed" autocomplete="name">' : ''}
+    <label style="margin-top:8px">Email</label>
+    <input id="aEmail" type="email" placeholder="name@example.com" autocomplete="email">
+    <label style="margin-top:8px">Password</label>
+    <input id="aPass" type="password" placeholder="${isSignup ? 'At least 6 characters' : 'Enter your password'}" autocomplete="${isSignup ? 'new-password' : 'current-password'}">
+    <button class="btn" onclick="emailAuth('${isSignup ? 'up' : 'in'}')">${isSignup ? 'Create Account' : 'Sign In'}</button>
+    ${!isSignup ? '<button class="linkbtn" onclick="resetPass()">Forgot password?</button>' : ''}
+    <button class="linkbtn" onclick="closeModal()">Cancel</button>
+  `);
 }
 function googleLogin(){
   if(!fb){toast('Loading… tap again in a moment');ensureFirebase().catch(()=>toast('No internet connection.'));return;}
   fb.Au.signInWithPopup(fb.auth,new fb.Au.GoogleAuthProvider()).catch(e=>{const m=authMsg(e);if(m)toast(m);});
 }
 async function emailAuth(kind){
-  const email=$('#aEmail').value.trim(), pw=$('#aPass').value;
-  if(!email||!pw) return toast('Enter your email and password');
+  const email = $('#aEmail').value.trim();
+  const pw = $('#aPass').value;
+  const nameEl = $('#aName');
+  const name = nameEl ? nameEl.value.trim() : '';
+
+  if(kind === 'up' && !name) return toast('Please enter your full name');
+  if(!email || !pw) return toast('Enter your email and password');
+  if(kind === 'up' && pw.length < 6) return toast('Password must be at least 6 characters');
+
   try{
     await ensureFirebase();
-    if(kind==='up') await fb.Au.createUserWithEmailAndPassword(fb.auth,email,pw);
-    else await fb.Au.signInWithEmailAndPassword(fb.auth,email,pw);
-  }catch(e){const m=authMsg(e);if(m)toast(m);}
+    if(kind === 'up'){
+      const res = await fb.Au.createUserWithEmailAndPassword(fb.auth, email, pw);
+      if(res.user && name){
+        await fb.Au.updateProfile(res.user, { displayName: name });
+        fb.user = fb.auth.currentUser;
+      }
+    } else {
+      await fb.Au.signInWithEmailAndPassword(fb.auth, email, pw);
+    }
+  }catch(e){
+    const m = authMsg(e);
+    if(m) toast(m);
+  }
 }
 async function resetPass(){
   const email=$('#aEmail').value.trim(); if(!email) return toast('Type your email first');
