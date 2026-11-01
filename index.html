@@ -42,7 +42,7 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
 .btn.red{background:var(--danger);color:#fff}
 .row{display:flex;gap:8px}.row>*{flex:1}
-.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);gap:8px}
+.item{display:flex;justify-between:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);gap:8px}
 .item:first-child{border-top:none}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--accent2);color:var(--accent);margin-right:6px}
 .muted{color:var(--muted);font-size:13px}
@@ -482,13 +482,15 @@ function accountCard(){
     <button class="btn" onclick="showLogin()">Sign in / Create account</button></div>`;
 }
 
-/* ---------- cloud (Firebase): login + sync ----------
-   PASTE YOUR FIREBASE CONFIG BELOW (Firebase console → Project settings → Your apps → Web app).
-   While it is null, the app works in guest mode only.
-   Example:
-   const FIREBASE_CONFIG = { apiKey:"AIza...", authDomain:"my-app.firebaseapp.com", projectId:"my-app", appId:"1:123:web:abc" };
-*/
-const FIREBASE_CONFIG = null;
+/* ---------- cloud (Firebase): login + sync ---------- */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC5ByOeouJL-vwHcyhYV8nGBvJ9ls8DOU8",
+  authDomain: "daily-cost-calculator-65930.firebaseapp.com",
+  projectId: "daily-cost-calculator-65930",
+  storageBucket: "daily-cost-calculator-65930.firebasestorage.app",
+  messagingSenderId: "892548599986",
+  appId: "1:892548599986:web:ff34e4d084e9a0a8e379ab"
+};
 const cloudEnabled=()=>!!(FIREBASE_CONFIG&&FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId);
 
 let fb=null, syncState='idle', synced={}, pushTimer=null, pushing=false, pushAgain=false, connectedUid=null, loadingCloud=(mode==='cloud');
