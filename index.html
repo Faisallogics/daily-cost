@@ -212,6 +212,7 @@ function showTarget(title){
 let view='today', selCat=null, setupCtx=null, histMonth=monthOf(todayStr()), repMonth=monthOf(todayStr());
 const NAV=[['today','🏠','Today'],['history','🧾','History'],['reports','📊','Reports'],['savings','🐷','Savings'],['settings','⚙️','Settings']];
 function go(v){view=v;setupCtx=null;render();window.scrollTo(0,0);}
+function editSetup(){setupCtx={mk:monthOf(todayStr()),edit:true};view='settings';render();window.scrollTo(0,0);}
 
 /* ---------- views ---------- */
 function setupCard(mk,edit){
@@ -220,7 +221,8 @@ function setupCard(mk,edit){
   return `<div class="card"><h3>${edit?'Edit':'Set up'} ${monthLabel(mk)}</h3>
    <label>Money you got this month (salary / from parents)</label>
    <input id="sAmt" type="number" inputmode="decimal" min="0" placeholder="e.g. 15000" value="${m.budget||''}" oninput="previewSetup()">
-   <label style="display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--text)"><input id="sSave" type="checkbox" style="width:auto" ${m.savingsGoal>0?'checked':''} onchange="previewSetup()"> I want to save money this month</label>
+   <label style="margin-top:16px;color:var(--text);font-weight:600">💰 Savings</label>
+   <select id="sSave" onchange="previewSetup()"><option value="0" ${m.savingsGoal>0?'':'selected'}>No savings this month</option><option value="1" ${m.savingsGoal>0?'selected':''}>Yes, I want to save a fixed amount</option></select>
    <div id="goalBox" style="display:none"><label>Total amount to save this month</label>
    <input id="sGoal" type="number" inputmode="decimal" min="0" placeholder="e.g. 3000" value="${m.savingsGoal||''}" oninput="previewSetup()"></div>
    <div class="note" id="sPrev">Enter your amount to see the daily limit.</div>
@@ -231,7 +233,7 @@ function setupCard(mk,edit){
 function previewSetup(){
   if(!setupCtx) return;
   const mk=setupCtx.mk, m=db.months[mk];
-  const amt=parseFloat($('#sAmt').value)||0, want=$('#sSave').checked, goal=want?(parseFloat($('#sGoal').value)||0):0;
+  const amt=parseFloat($('#sAmt').value)||0, want=$('#sSave').value==='1', goal=want?(parseFloat($('#sGoal').value)||0):0;
   $('#goalBox').style.display=want?'block':'none';
   const startDay=m&&m.startDate?Number(m.startDate.slice(8,10)):(mk===monthOf(todayStr())?new Date().getDate():1);
   const days=daysIn(mk)-startDay+1, el=$('#sPrev');
@@ -242,8 +244,9 @@ function previewSetup(){
 }
 function saveSetup(){
   const {mk,edit}=setupCtx;
-  const amt=parseFloat($('#sAmt').value), want=$('#sSave').checked, goal=want?(parseFloat($('#sGoal').value)||0):0;
+  const amt=parseFloat($('#sAmt').value), want=$('#sSave').value==='1', goal=want?(parseFloat($('#sGoal').value)||0):0;
   if(!(amt>0)) return toast('Enter the amount you got');
+  if(want&&!(goal>0)) return toast('Enter how much you want to save');
   if(goal>=amt) return toast('Savings must be less than the amount');
   const ex=db.months[mk];
   db.months[mk]={budget:amt,savingsGoal:goal,startDate:ex?ex.startDate:(mk===monthOf(todayStr())?todayStr():mk+'-01'),topups:ex?ex.topups||[]:[],decisions:ex?ex.decisions||{}:{}};
@@ -272,6 +275,7 @@ function vToday(){
     <div>${over?`Over by <b>${money(-left)}</b> — it comes out of the rest of the month`:`<b>${money(left)}</b> left to spend today`} · spent ${money(t.spent)}</div>
     ${dLeft>0?`<div class="lbl" style="margin-top:6px">Tomorrow's target: ${money(tomorrow)} (if today's leftover is kept in your money)</div>`:''}
   </div>
+  ${c.goal>0?'':'<div class="note" style="margin:0 0 12px">💰 Want to save money this month? <button class="linkbtn" style="display:inline;width:auto;padding:0 0 0 6px;font-weight:600" onclick="editSetup()">Set a savings goal</button></div>'}
   <div class="grid">
     <div class="stat"><b class="${c.pool<0?'neg':''}">${money(c.pool)}</b><span>Left this month</span></div>
     <div class="stat"><b>${dLeft+1}</b><span>Days left (incl. today)</span></div>
@@ -386,7 +390,7 @@ function vSavings(){
     <div class="item"><span>Daily saving</span><b>${money(cc.dailySave)}</b></div>
     <div class="item"><span>Saved from the daily plan</span><b>${money(cc.savedGoal)}</b></div>
     <div class="item"><span>Saved from unspent money</span><b>${money(cc.extraSaved)}</b></div>
-    ${cc.goal>0?`<div class="bar" style="background:var(--line)"><i style="width:${Math.min(100,cc.saved/cc.goal*100)}%;background:var(--accent)"></i></div><div class="muted">${Math.round(cc.saved/cc.goal*100)}% of this month's goal</div>`:'<div class="muted">No savings goal set. Open Settings → Edit this month to add one.</div>'}
+    ${cc.goal>0?`<div class="bar" style="background:var(--line)"><i style="width:${Math.min(100,cc.saved/cc.goal*100)}%;background:var(--accent)"></i></div><div class="muted">${Math.round(cc.saved/cc.goal*100)}% of this month's goal</div>`:'<div class="muted">No savings goal set for this month.</div><button class="btn" onclick="editSetup()">Set a savings goal</button>'}
   </div>`:''}
   <div class="card"><h3>By month</h3>${rows.map(({k,c})=>`<div class="item"><span>${monthLabel(k)}</span><b class="pos">${money(c.saved)}</b></div>`).join('')}</div>`;
 }
