@@ -227,7 +227,7 @@ function setupCard(mk,edit){
    <input id="sGoal" type="number" inputmode="decimal" min="0" placeholder="e.g. 3000" value="${m.savingsGoal||''}" oninput="previewSetup()"></div>
    <div class="note" id="sPrev">Enter your amount to see the daily limit.</div>
    <button class="btn" onclick="saveSetup()">${edit?'Save changes':'Start tracking'}</button>
-   ${edit?'<button class="btn ghost" onclick="go('today')">Cancel</button>':''}
+   ${edit?'<button class="btn ghost" onclick="go(\'today\')">Cancel</button>':''}
   </div>`;
 }
 function previewSetup(){
@@ -313,7 +313,7 @@ function addExpense(){
   db.expenses.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date,amount:amt,cat,note});
   save();render();
   const c=compute(mk);
-  if(c.today&&c.today.spent>Math.max(0,c.today.limit)+0.005) toast('⚠️ Over today's limit');
+  if(c.today&&c.today.spent>Math.max(0,c.today.limit)+0.005) toast('⚠️ Over today\'s limit');
   checkPending();
 }
 function delExpense(id){
@@ -462,7 +462,7 @@ function vWelcome(){
     <div style="font-size:54px">💸</div><h2 style="margin:6px 0">Daily Cost Calculator</h2>
     <p class="muted">Set your monthly money, get a daily spending limit, see where it goes and save more.</p>
     <button class="btn" onclick="startGuest()">Continue without account</button>
-    ${cloudEnabled()?'<button class="btn ghost" onclick="showLogin('signup')">Create account / Sign in</button>':''}
+    ${cloudEnabled()?'<button class="btn ghost" onclick="showLogin(\'signup\')">Create account / Sign in</button>':''}
     <p class="muted" style="margin-top:14px">Guest mode keeps your data on this device only. You can sign in later and nothing is lost.</p>
   </div>`;
 }
