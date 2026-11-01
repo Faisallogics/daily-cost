@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="description" content="Set your monthly money, get a daily spending limit, track expenses and save more.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Daily Cost">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Daily Cost Calculator</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--text:#14202b;--muted:#64748b;--line:#e2e8f0;--accent:#0f766e;--accent2:#ccfbf1;--danger:#dc2626;--danger2:#fee2e2;--warn:#b45309}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1419;--card:#16212a;--text:#e6edf3;--muted:#8b9bab;--line:#243340;--accent:#2dd4bf;--accent2:#12373a;--danger:#f87171;--danger2:#3b1d1d;--warn:#fbbf24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+header{padding:16px 16px 4px;max-width:640px;margin:0 auto}
+header h1{margin:0;font-size:20px}
+header small{color:var(--muted)}
+main{max-width:640px;margin:0 auto;padding:8px 16px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.card h3{margin:0 0 10px;font-size:16px}
+.hero{background:var(--accent);color:#fff;border:none}
+@media(prefers-color-scheme:dark){.hero{color:#06231f}}
+.hero.over{background:var(--danger);color:#fff}
+.hero .big{font-size:34px;font-weight:700;line-height:1.1}
+.hero .lbl{opacity:.85;font-size:13px}
+.bar{height:10px;background:rgba(255,255,255,.3);border-radius:99px;overflow:hidden;margin:12px 0 8px}
+.bar>i{display:block;height:100%;background:#fff;border-radius:99px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.stat b{display:block;font-size:16px}
+.stat span{color:var(--muted);font-size:12px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);font:inherit}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:12px;background:var(--accent);color:#fff;font:inherit;font-weight:600;margin-top:12px;cursor:pointer}
+@media(prefers-color-scheme:dark){.btn{color:#06231f}}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn.red{background:var(--danger);color:#fff}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);gap:8px}
+.item:first-child{border-top:none}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--accent2);color:var(--accent);margin-right:6px}
+.muted{color:var(--muted);font-size:13px}
+.x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+.neg{color:var(--danger)}.pos{color:var(--accent)}
+.note{background:var(--accent2);color:var(--text);padding:10px 12px;border-radius:12px;font-size:13px;margin-top:10px}
+.note.bad{background:var(--danger2)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav div{display:flex;max-width:640px;width:100%}
+nav button{flex:1;border:none;background:none;color:var(--muted);padding:10px 2px 8px;font:inherit;font-size:12px;cursor:pointer}
+nav button b{display:block;font-size:19px;font-weight:400}
+nav button.on{color:var(--accent);font-weight:600}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:10}
+#modal.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px;max-height:90vh;overflow:auto}
+.sheet h2{margin:0 0 6px;font-size:18px}
+canvas{width:100%;display:block}
+.legend div{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px}
+.legend i{width:12px;height:12px;border-radius:3px;flex:none}
+.legend span{flex:1}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90%}
+#toast.show{opacity:1}
+.empty{text-align:center;color:var(--muted);padding:24px 8px}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:99px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.chip:empty{display:none}
+.or{text-align:center;color:var(--muted);font-size:13px;margin:14px 0 4px}
+.linkbtn{display:block;width:100%;background:none;border:none;color:var(--accent);font:inherit;font-size:13px;padding:10px;cursor:pointer}
+</style>
+</head>
+<body>
+<header><div class="hrow"><h1>💸 Daily Cost Calculator</h1><button class="chip" id="status" onclick="go('settings')" aria-label="Account status"></button></div><small id="sub"></small></header>
+<main id="app"></main>
+<nav><div id="nav"></div></nav>
+<div id="modal"></div>
+<div id="toast"></div>
+<input type="file" id="importFile" accept=".json,application/json" style="display:none">
+
+<script>
+/* ---------- storage ---------- */
+const GUEST_KEY='dailyCostCalc.v1';            // guest data (same key as version 1, so old data keeps working)
+const MODE_KEY='dcc.mode', UID_KEY='dcc.lastUid', DIRTY_KEY='dcc.dirty';
+const cacheKey=uid=>'dcc.cloud.'+uid;           // local copy of a signed-in user's data (fast start + offline)
+const DEFAULT_CATS=['Food','Transport','Shopping','Bills','Health','Education','Entertainment','Other'];
+const PAL=['#0f766e','#f59e0b','#6366f1','#ef4444','#06b6d4','#84cc16','#ec4899','#8b5cf6','#f97316','#64748b'];
+function fresh(){return {months:{},expenses:[],categories:[...DEFAULT_CATS],settings:{currency:'৳',auto:'ask'}};}
+function parseDb(raw){try{const d=JSON.parse(raw);if(d&&d.months&&d.expenses)return Object.assign(fresh(),d,{settings:Object.assign(fresh().settings,d.settings||{})});}catch(e){}return null;}
+function loadFrom(key){try{return parseDb(localStorage.getItem(key))||fresh();}catch(e){return fresh();}}
+let mode=null, lastUid=null;   // mode: null (welcome screen) | 'guest' | 'cloud'
+try{
+  mode=localStorage.getItem(MODE_KEY); lastUid=localStorage.getItem(UID_KEY);
+  if(!mode&&localStorage.getItem(GUEST_KEY)){mode='guest';localStorage.setItem(MODE_KEY,'guest');}   // data from version 1
+}catch(e){}
+let db=mode==='cloud'&&lastUid?loadFrom(cacheKey(lastUid)):mode==='guest'?loadFrom(GUEST_KEY):fresh();
+function setMode(m){mode=m;try{m?localStorage.setItem(MODE_KEY,m):localStorage.removeItem(MODE_KEY);}catch(e){}}
+function save(){
+  try{
+    if(mode==='guest') localStorage.setItem(GUEST_KEY,JSON.stringify(db));
+    else if(mode==='cloud'&&lastUid){localStorage.setItem(cacheKey(lastUid),JSON.stringify(db));localStorage.setItem(DIRTY_KEY,'1');}
+  }catch(e){toast('Could not save (browser storage blocked)');}
+  if(mode==='cloud') schedulePush();
+}
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const fmtDate=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const todayStr=()=>fmtDate(new Date());
+const monthOf=s=>s.slice(0,7);
+const daysIn=mk=>{const [y,m]=mk.split('-').map(Number);return new Date(y,m,0).getDate();};
+const monthLabel=mk=>{const [y,m]=mk.split('-').map(Number);return new Date(y,m-1,1).toLocaleString('en',{month:'long',year:'numeric'});};
+const dayLabel=ds=>{const [y,m,d]=ds.split('-').map(Number);return new Date(y,m-1,d).toLocaleString('en',{weekday:'short',day:'numeric',month:'short'});};
+const money=n=>{const v=Math.round(n*100)/100;return (v<0?'-':'')+db.settings.currency+Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:2});};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const monthList=()=>Object.keys(db.months).sort().reverse();
+let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2600);}
+
+/* ---------- core calculation ----------
+   pool = (given amount - savings goal) + top-ups
+   limit(day) = pool at start of day / days remaining (incl. that day)
+   spending reduces the pool (overspend automatically lowers later limits)
+   leftover of a finished day: "savings" -> removed from pool and saved
+                               "pool"    -> stays in pool (spread over remaining days)  */
+function compute(mk){
+  const m=db.months[mk]; if(!m) return null;
+  const N=daysIn(mk), today=todayStr(), start=m.startDate||mk+'-01';
+  const startDay=Number(start.slice(8,10)), active=N-startDay+1;
+  const goal=m.savingsGoal||0;
+  const spentBy={}; db.expenses.forEach(e=>{if(monthOf(e.date)===mk)spentBy[e.date]=(spentBy[e.date]||0)+e.amount;});
+  const topBy={}; (m.topups||[]).forEach(t=>{topBy[t.date]=(topBy[t.date]||0)+t.amount;});
+  let pool=m.budget-goal, extraSaved=0, topTotal=0, spentTotal=0, pastDays=0;
+  const days=[];
+  for(let d=1;d<=N;d++){
+    const ds=mk+'-'+pad(d);
+    if(ds<start){days.push({date:ds,day:d,status:'skip',limit:0,spent:0,leftover:0,decision:null});continue;}
+    const status=ds<today?'past':ds===today?'today':'future';
+    const tp=topBy[ds]||0; pool+=tp; topTotal+=tp;
+    const limit=pool/(N-d+1), spent=spentBy[ds]||0;
+    const rec={date:ds,day:d,status,limit,spent,leftover:0,decision:(m.decisions||{})[ds]||null};
+    if(status!=='future'){
+      pool-=spent; spentTotal+=spent;
+      if(status==='past'){
+        pastDays++;
+        rec.leftover=Math.max(0,limit-spent);
+        if(rec.leftover>0.005&&rec.decision==='savings'){pool-=rec.leftover;extraSaved+=rec.leftover;}
+      }
+    }
+    days.push(rec);
+  }
+  const dailySave=active>0?goal/active:0, savedGoal=dailySave*pastDays;
+  return {N,active,days,goal,dailySave,pool,savedGoal,extraSaved,saved:savedGoal+extraSaved,
+          budgetTotal:m.budget+topTotal,spentTotal,today:days.find(x=>x.status==='today')||null};
+}
+function pendingAll(){
+  const out=[];
+  Object.keys(db.months).sort().forEach(mk=>{
+    const c=compute(mk);
+    c.days.forEach(d=>{if(d.status==='past'&&d.leftover>0.005&&!d.decision)out.push({mk,N:c.N,...d});});
+  });
+  return out;
+}
+function setDecision(mk,ds,val){const m=db.months[mk];m.decisions=m.decisions||{};m.decisions[ds]=val;save();}
+function resolvePending(){
+  for(let g=0;g<500;g++){
+    const p=pendingAll()[0]; if(!p) return null;
+    if(db.settings.auto==='ask') return p;
+    setDecision(p.mk,p.date,db.settings.auto);
+  }
+  return null;
+}
+
+/* ---------- modal ---------- */
+let modalLock=false, decided=false;
+function openModal(html,lock){modalLock=!!lock;$('#modal').innerHTML='<div class="sheet">'+html+'</div>';$('#modal').classList.add('open');}
+function closeModal(){$('#modal').classList.remove('open');$('#modal').innerHTML='';modalLock=false;}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!modalLock)closeModal();});
+function checkPending(){
+  if(!mode||loadingCloud) return;
+  if($('#modal').classList.contains('open')) return;
+  const p=resolvePending(); if(p) showDecision(p);
+}
+function showDecision(p){
+  const last=p.day===p.N, cur=p.mk===monthOf(todayStr());
+  openModal(`<h2>${dayLabel(p.date)} ended 🎉</h2>
+    <p>You spent <b>${money(p.spent)}</b> of your <b>${money(p.limit)}</b> limit, so <b>${money(p.leftover)}</b> is left over. What should we do with it?</p>
+    <button class="btn" onclick="decide('${p.mk}','${p.date}','savings')">Add to SAVINGS</button>
+    <button class="btn ghost" onclick="decide('${p.mk}','${p.date}','pool')">${last||!cur&&last?'Skip it':'Add to my money (spread over the remaining days)'}</button>
+    <p class="muted" style="margin-top:12px">Tip: Settings → "Leftover money" lets you pick one choice for every day so you are not asked again.</p>`,true);
+}
+function decide(mk,ds,val){
+  setDecision(mk,ds,val);decided=true;closeModal();render();
+  const p=resolvePending();
+  if(p){showDecision(p);return;}
+  showTarget(val==='savings'?'Added to savings 💰':'Added back to your money');
+}
+function showTarget(title){
+  const mk=monthOf(todayStr()),c=compute(mk); if(!c||!c.today){render();return;}
+  const t=c.today, lim=Math.max(0,t.limit);
+  openModal(`<h2>${esc(title)}</h2><p class="muted">Your new target</p>
+    <div style="font-size:34px;font-weight:700;color:var(--accent)">${money(lim)} <span style="font-size:15px;font-weight:400;color:var(--muted)">per day</span></div>
+    <p class="muted">Today: ${money(Math.max(0,lim-t.spent))} left to spend. Money left this month: ${money(c.pool)} for ${c.N-t.day+1} day(s).</p>
+    <button class="btn" onclick="closeModal()">OK</button>`);
+}
+
+/* ---------- state ---------- */
+let view='today', selCat=null, setupCtx=null, histMonth=monthOf(todayStr()), repMonth=monthOf(todayStr());
+const NAV=[['today','🏠','Today'],['history','🧾','History'],['reports','📊','Reports'],['savings','🐷','Savings'],['settings','⚙️','Settings']];
+function go(v){view=v;setupCtx=null;render();window.scrollTo(0,0);}
+
+/* ---------- views ---------- */
+function setupCard(mk,edit){
+  const m=db.months[mk]||{}, N=daysIn(mk);
+  setupCtx={mk,edit};
+  return `<div class="card"><h3>${edit?'Edit':'Set up'} ${monthLabel(mk)}</h3>
+   <label>Money you got this month (salary / from parents)</label>
+   <input id="sAmt" type="number" inputmode="decimal" min="0" placeholder="e.g. 15000" value="${m.budget||''}" oninput="previewSetup()">
+   <label style="display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--text)"><input id="sSave" type="checkbox" style="width:auto" ${m.savingsGoal>0?'checked':''} onchange="previewSetup()"> I want to save money this month</label>
+   <div id="goalBox" style="display:none"><label>Total amount to save this month</label>
+   <input id="sGoal" type="number" inputmode="decimal" min="0" placeholder="e.g. 3000" value="${m.savingsGoal||''}" oninput="previewSetup()"></div>
+   <div class="note" id="sPrev">Enter your amount to see the daily limit.</div>
+   <button class="btn" onclick="saveSetup()">${edit?'Save changes':'Start tracking'}</button>
+   ${edit?'<button class="btn ghost" onclick="go(\'today\')">Cancel</button>':''}
+  </div>`;
+}
+function previewSetup(){
+  if(!setupCtx) return;
+  const mk=setupCtx.mk, m=db.months[mk];
+  const amt=parseFloat($('#sAmt').value)||0, want=$('#sSave').checked, goal=want?(parseFloat($('#sGoal').value)||0):0;
+  $('#goalBox').style.display=want?'block':'none';
+  const startDay=m&&m.startDate?Number(m.startDate.slice(8,10)):(mk===monthOf(todayStr())?new Date().getDate():1);
+  const days=daysIn(mk)-startDay+1, el=$('#sPrev');
+  if(!(amt>0)){el.className='note';el.textContent='Enter your amount to see the daily limit.';return;}
+  if(goal>=amt){el.className='note bad';el.textContent='Savings must be less than the amount you got.';return;}
+  el.className='note';
+  el.innerHTML=`${days} day(s) to cover.<br>Daily limit: <b>${money((amt-goal)/days)}</b>`+(goal>0?`<br>Daily saving: <b>${money(goal/days)}</b> (total ${money(goal)})`:'');
+}
+function saveSetup(){
+  const {mk,edit}=setupCtx;
+  const amt=parseFloat($('#sAmt').value), want=$('#sSave').checked, goal=want?(parseFloat($('#sGoal').value)||0):0;
+  if(!(amt>0)) return toast('Enter the amount you got');
+  if(goal>=amt) return toast('Savings must be less than the amount');
+  const ex=db.months[mk];
+  db.months[mk]={budget:amt,savingsGoal:goal,startDate:ex?ex.startDate:(mk===monthOf(todayStr())?todayStr():mk+'-01'),topups:ex?ex.topups||[]:[],decisions:ex?ex.decisions||{}:{}};
+  save();setupCtx=null;view='today';render();showTarget(edit?'Updated ✅':'You are all set 🚀');
+}
+function vToday(){
+  const mk=monthOf(todayStr()), m=db.months[mk];
+  let banner='';
+  const prev=monthList().find(k=>k<mk);
+  if(!m){
+    if(prev) banner=`<div class="card"><b>📊 ${monthLabel(prev)} is finished.</b><div class="muted">See where your money went.</div><button class="btn ghost" onclick="repMonth='${prev}';go('reports')">View last month's report</button></div>`;
+    return banner+setupCard(mk,false);
+  }
+  const c=compute(mk), t=c.today;
+  if(!t) return '<div class="empty">Nothing to show for today.</div>';
+  const lim=Math.max(0,t.limit), left=lim-t.spent, over=left<-0.005;
+  const pct=lim>0?Math.min(100,t.spent/lim*100):100;
+  const dLeft=c.N-t.day;
+  const tomorrow=dLeft>0?Math.max(0,c.pool/dLeft):0;
+  const todayEx=db.expenses.filter(e=>e.date===todayStr());
+  if(!selCat||!db.categories.includes(selCat)) selCat=db.categories[0];
+  return `
+  <div class="card hero ${over?'over':''}">
+    <div class="lbl">Today's limit</div><div class="big">${money(lim)}</div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div>${over?`Over by <b>${money(-left)}</b> — it comes out of the rest of the month`:`<b>${money(left)}</b> left to spend today`} · spent ${money(t.spent)}</div>
+    ${dLeft>0?`<div class="lbl" style="margin-top:6px">Tomorrow's target: ${money(tomorrow)} (if today's leftover is kept in your money)</div>`:''}
+  </div>
+  <div class="grid">
+    <div class="stat"><b class="${c.pool<0?'neg':''}">${money(c.pool)}</b><span>Left this month</span></div>
+    <div class="stat"><b>${dLeft+1}</b><span>Days left (incl. today)</span></div>
+    <div class="stat"><b class="pos">${money(c.saved)}</b><span>Saved so far</span></div>
+  </div>
+  <div class="card"><h3>Add expense</h3>
+    <label>Amount</label><input id="eAmt" type="number" inputmode="decimal" min="0" placeholder="e.g. 10">
+    <label>What did you buy? (optional)</label><input id="eNote" placeholder="e.g. apple" maxlength="60">
+    <div class="row"><div><label>Sector</label><select id="eCat" onchange="catChange(this)">${db.categories.map(x=>`<option ${x===selCat?'selected':''} value="${esc(x)}">${esc(x)}</option>`).join('')}<option value="__new">＋ New sector…</option></select></div>
+    <div><label>Date</label><input id="eDate" type="date" value="${todayStr()}" min="${db.months[mk].startDate||mk+'-01'}" max="${todayStr()}"></div></div>
+    <button class="btn" onclick="addExpense()">Add expense</button>
+    <button class="btn ghost" onclick="topupModal()">＋ I received more money</button>
+  </div>
+  <div class="card"><h3>Today's spending</h3>
+    ${todayEx.length?todayEx.slice().reverse().map(expRow).join(''):'<div class="muted">Nothing yet. Great start!</div>'}
+  </div>`;
+}
+function expRow(e){
+  return `<div class="item"><div><span class="tag">${esc(e.cat)}</span>${esc(e.note||e.cat)}</div><div><b>${money(e.amount)}</b> <button class="x" onclick="delExpense('${e.id}')" aria-label="Delete">✕</button></div></div>`;
+}
+function catChange(sel){
+  if(sel.value==='__new'){
+    const n=(prompt('Name of the new sector (e.g. Gifts)')||'').trim().slice(0,24);
+    if(n&&!db.categories.some(x=>x.toLowerCase()===n.toLowerCase())){db.categories.push(n);selCat=n;save();}
+    else if(n){selCat=db.categories.find(x=>x.toLowerCase()===n.toLowerCase());}
+    render();
+  } else selCat=sel.value;
+}
+function addExpense(){
+  const amt=parseFloat($('#eAmt').value), date=$('#eDate').value||todayStr(), note=$('#eNote').value.trim(), cat=$('#eCat').value;
+  if(!(amt>0)) return toast('Enter an amount');
+  const mk=monthOf(todayStr()), m=db.months[mk];
+  if(date>todayStr()) return toast('Date cannot be in the future');
+  if(monthOf(date)!==mk||date<(m.startDate||mk+'-01')) return toast('Pick a date in this month, from your start date');
+  db.expenses.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date,amount:amt,cat,note});
+  save();render();
+  const c=compute(mk);
+  if(c.today&&c.today.spent>Math.max(0,c.today.limit)+0.005) toast('⚠️ Over today\'s limit');
+  checkPending();
+}
+function delExpense(id){
+  if(!confirm('Delete this expense?')) return;
+  db.expenses=db.expenses.filter(e=>e.id!==id);save();render();checkPending();
+}
+function topupModal(){
+  openModal(`<h2>I received more money</h2><p class="muted">It is added to this month's money and your daily limit is recalculated.</p>
+   <input id="tAmt" type="number" inputmode="decimal" min="0" placeholder="Amount">
+   <button class="btn" onclick="doTopup()">Add money</button><button class="btn ghost" onclick="closeModal()">Cancel</button>`);
+}
+function doTopup(){
+  const a=parseFloat($('#tAmt').value); if(!(a>0)) return toast('Enter an amount');
+  const m=db.months[monthOf(todayStr())]; m.topups=m.topups||[]; m.topups.push({date:todayStr(),amount:a});
+  save();closeModal();render();showTarget('Money added 💵');
+}
+function monthPicker(id,cur,fn){
+  const ms=monthList(); if(!ms.length) return '';
+  return `<select onchange="${fn}(this.value)">${ms.map(k=>`<option value="${k}" ${k===cur?'selected':''}>${monthLabel(k)}</option>`).join('')}</select>`;
+}
+function vHistory(){
+  const ms=monthList(); if(!ms.length) return '<div class="empty">No data yet. Set up your month on the Today tab.</div>';
+  if(!ms.includes(histMonth)) histMonth=ms[0];
+  const c=compute(histMonth);
+  const ex=db.expenses.filter(e=>monthOf(e.date)===histMonth);
+  const dates=[...new Set(ex.map(e=>e.date))].sort().reverse();
+  return `<div class="card">${monthPicker('h',histMonth,'setHist')}</div>`+(dates.length?dates.map(ds=>{
+    const rec=c.days.find(d=>d.date===ds), items=ex.filter(e=>e.date===ds), tot=items.reduce((a,b)=>a+b.amount,0);
+    const over=rec&&rec.status!=='skip'&&tot>Math.max(0,rec.limit)+0.005;
+    return `<div class="card"><div style="display:flex;justify-content:space-between"><b>${dayLabel(ds)}</b><span class="${over?'neg':'pos'}"><b>${money(tot)}</b>${rec?` <span class="muted">/ ${money(Math.max(0,rec.limit))}</span>`:''}</span></div>${items.slice().reverse().map(expRow).join('')}</div>`;
+  }).join(''):'<div class="empty">No expenses in this month.</div>');
+}
+function setHist(v){histMonth=v;render();}
+function setRep(v){repMonth=v;render();}
+function reportData(mk){
+  const ex=db.expenses.filter(e=>monthOf(e.date)===mk), byCat={}, byItem={};
+  ex.forEach(e=>{byCat[e.cat]=(byCat[e.cat]||0)+e.amount;const k=(e.note||e.cat).toLowerCase();(byItem[k]=byItem[k]||{name:e.note||e.cat,cat:e.cat,v:0,n:0}).v+=e.amount;byItem[k].n++;});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([label,value],i)=>({label,value,color:PAL[i%PAL.length]}));
+  return {ex,cats,items:Object.values(byItem).sort((a,b)=>b.v-a.v).slice(0,8),total:ex.reduce((a,b)=>a+b.amount,0)};
+}
+function vReports(){
+  const ms=monthList(); if(!ms.length) return '<div class="empty">No data yet. Set up your month on the Today tab.</div>';
+  if(!ms.includes(repMonth)) repMonth=ms[0];
+  const c=compute(repMonth), r=reportData(repMonth);
+  const done=c.days.filter(d=>d.status==='past'||d.status==='today');
+  const overDays=done.filter(d=>d.spent>Math.max(0,d.limit)+0.005).length;
+  const avg=done.length?r.total/done.length:0;
+  let h=`<div class="card">${monthPicker('r',repMonth,'setRep')}</div>
+  <div class="grid">
+    <div class="stat"><b>${money(r.total)}</b><span>Spent</span></div>
+    <div class="stat"><b>${money(avg)}</b><span>Avg per day</span></div>
+    <div class="stat"><b class="${overDays?'neg':'pos'}">${overDays}</b><span>Days over limit</span></div>
+  </div>
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><b>${money(c.budgetTotal)}</b><span>Money received</span></div>
+    <div class="stat"><b class="pos">${money(c.saved)}</b><span>Saved</span></div>
+    <div class="stat"><b class="${c.pool<0?'neg':''}">${money(c.pool)}</b><span>Left</span></div>
+  </div>`;
+  if(!r.total) return h+'<div class="empty">No expenses recorded this month.</div>';
+  h+=`<div class="card"><h3>Where your money went</h3><canvas id="pie"></canvas>
+    <div class="legend" style="margin-top:8px">${r.cats.map(x=>`<div><i style="background:${x.color}"></i><span>${esc(x.label)}</span><b>${money(x.value)}</b><span class="muted" style="flex:none;width:44px;text-align:right">${Math.round(x.value/r.total*100)}%</span></div>`).join('')}</div>
+    <div class="note">You spend the most on <b>${esc(r.cats[0].label)}</b> (${Math.round(r.cats[0].value/r.total*100)}% of your spending).</div></div>
+  <div class="card"><h3>Day by day (spent vs limit)</h3><canvas id="bars"></canvas><div class="muted">Bars: spent. Line: that day's limit. Red bar = over the limit.</div></div>
+  <div class="card"><h3>Top items</h3>${r.items.map(i=>`<div class="item"><div><span class="tag">${esc(i.cat)}</span>${esc(i.name)} <span class="muted">×${i.n}</span></div><b>${money(i.v)}</b></div>`).join('')}</div>`;
+  return h;
+}
+function vSavings(){
+  const ms=monthList(); if(!ms.length) return '<div class="empty">No data yet. Set up your month on the Today tab.</div>';
+  let total=0; const rows=ms.map(k=>{const c=compute(k);total+=c.saved;return {k,c};});
+  const cur=db.months[monthOf(todayStr())], cc=cur?compute(monthOf(todayStr())):null;
+  return `<div class="card hero"><div class="lbl">SAVINGS (all months)</div><div class="big">${money(total)}</div></div>
+  ${cc?`<div class="card"><h3>This month</h3>
+    <div class="item"><span>Savings goal</span><b>${money(cc.goal)}</b></div>
+    <div class="item"><span>Daily saving</span><b>${money(cc.dailySave)}</b></div>
+    <div class="item"><span>Saved from the daily plan</span><b>${money(cc.savedGoal)}</b></div>
+    <div class="item"><span>Saved from unspent money</span><b>${money(cc.extraSaved)}</b></div>
+    ${cc.goal>0?`<div class="bar" style="background:var(--line)"><i style="width:${Math.min(100,cc.saved/cc.goal*100)}%;background:var(--accent)"></i></div><div class="muted">${Math.round(cc.saved/cc.goal*100)}% of this month's goal</div>`:'<div class="muted">No savings goal set. Open Settings → Edit this month to add one.</div>'}
+  </div>`:''}
+  <div class="card"><h3>By month</h3>${rows.map(({k,c})=>`<div class="item"><span>${monthLabel(k)}</span><b class="pos">${money(c.saved)}</b></div>`).join('')}</div>`;
+}
+function vSettings(){
+  if(setupCtx) return setupCard(setupCtx.mk,setupCtx.edit);
+  const mk=monthOf(todayStr());
+  return accountCard()+`<div class="card"><h3>This month</h3>
+    ${db.months[mk]?`<button class="btn ghost" style="margin-top:0" onclick="view='settings';document.getElementById('app').innerHTML=setupCard('${mk}',true);previewSetup()">Edit amount / savings goal</button>`:'<div class="muted">Set up this month on the Today tab first.</div>'}</div>
+  <div class="card"><h3>Preferences</h3>
+    <label>Currency symbol</label><input id="cur" value="${esc(db.settings.currency)}" maxlength="4" onchange="db.settings.currency=this.value||'৳';save();toast('Saved')">
+    <label>Leftover money at the end of a day</label>
+    <select onchange="db.settings.auto=this.value;save();render();checkPending()">
+      <option value="ask" ${db.settings.auto==='ask'?'selected':''}>Ask me every day</option>
+      <option value="savings" ${db.settings.auto==='savings'?'selected':''}>Always add to savings</option>
+      <option value="pool" ${db.settings.auto==='pool'?'selected':''}>Always add back to my money</option>
+    </select></div>
+  <div class="card"><h3>Backup</h3><div class="muted">${mode==='cloud'?'Your data is saved online. A backup file is still a handy extra copy.':'Your data lives only on this device. Export a backup now and then, and use it to move to another phone.'}</div>
+    <button class="btn" onclick="exportData()">Export backup</button>
+    <button class="btn ghost" onclick="$('#importFile').click()">Import backup</button>
+    <button class="btn red" onclick="resetAll()">Delete everything</button></div>`;
+}
+function exportData(){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));
+  a.download='daily-cost-backup-'+todayStr()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+$('#importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.months||!d.expenses)throw 0;if(!confirm('Replace current data with this backup?'))return;db=Object.assign(fresh(),d);save();render();checkPending();toast('Backup restored');}catch(x){toast('That file is not a valid backup');}};
+  r.readAsText(f);e.target.value='';
+});
+function resetAll(){
+  const where=mode==='cloud'?'ALL your data, including the copy saved online':'ALL data on this device';
+  if(confirm('Delete '+where+'? This cannot be undone.')&&confirm('Really delete everything?')){db=fresh();save();render();}
+}
+
+/* ---------- charts (plain canvas, no libraries) ---------- */
+function prep(c,h){const dpr=window.devicePixelRatio||1,w=c.clientWidth;c.width=w*dpr;c.height=h*dpr;c.style.height=h+'px';const x=c.getContext('2d');x.scale(dpr,dpr);return {x,w,h};}
+function drawPie(c,items){
+  const {x,w,h}=prep(c,220), total=items.reduce((a,b)=>a+b.value,0), cx=w/2, cy=h/2, r=Math.min(w,h)/2-6;
+  let a=-Math.PI/2;
+  items.forEach(it=>{const g=it.value/total*Math.PI*2;x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,r,a,a+g);x.closePath();x.fillStyle=it.color;x.fill();a+=g;});
+  x.globalCompositeOperation='destination-out';x.beginPath();x.arc(cx,cy,r*.56,0,Math.PI*2);x.fill();x.globalCompositeOperation='source-over';
+  x.fillStyle=css('--text');x.textAlign='center';x.font='600 15px system-ui';x.fillText(money(total),cx,cy+5);
+}
+function drawBars(c,days){
+  const {x,w,h}=prep(c,210), P={l:40,r:6,t:10,b:22}, ds=days.filter(d=>d.status!=='skip');
+  const max=Math.max(1,...ds.map(d=>Math.max(d.spent,Math.max(0,d.limit)))), iw=w-P.l-P.r, ih=h-P.t-P.b, bw=iw/ds.length;
+  x.font='11px system-ui';x.fillStyle=css('--muted');x.strokeStyle=css('--line');x.textAlign='right';
+  [0,.5,1].forEach(f=>{const y=P.t+ih-ih*f;x.beginPath();x.moveTo(P.l,y);x.lineTo(w-P.r,y);x.stroke();x.fillText(Math.round(max*f),P.l-5,y+4);});
+  ds.forEach((d,i)=>{
+    const bx=P.l+i*bw, bh=ih*d.spent/max;
+    x.fillStyle=d.spent>Math.max(0,d.limit)+0.005?css('--danger'):css('--accent');x.fillRect(bx+bw*.15,P.t+ih-bh,bw*.7,bh);
+    if(d.status!=='future'){const ly=P.t+ih-ih*Math.max(0,d.limit)/max;x.fillStyle=css('--text');x.fillRect(bx+bw*.05,ly-1,bw*.9,2);}
+    if(ds.length<=16||d.day%5===0||d.day===1){x.fillStyle=css('--muted');x.textAlign='center';x.fillText(d.day,bx+bw/2,h-6);}
+  });
+}
+function drawCharts(){
+  if(view!=='reports') return;
+  const ms=monthList(); if(!ms.length) return;
+  const r=reportData(repMonth); if(!r.total) return;
+  const p=$('#pie'); if(p) drawPie(p,r.cats);
+  const b=$('#bars'); if(b) drawBars(b,compute(repMonth).days);
+}
+
+/* ---------- welcome + account screens ---------- */
+function vWelcome(){
+  return `<div class="card" style="text-align:center;margin-top:28px">
+    <div style="font-size:54px">💸</div><h2 style="margin:6px 0">Daily Cost Calculator</h2>
+    <p class="muted">Set your monthly money, get a daily spending limit, see where it goes and save more.</p>
+    <button class="btn" onclick="startGuest()">Continue without account</button>
+    ${cloudEnabled()?'<button class="btn ghost" onclick="showLogin()">Sign in / Create account</button>':''}
+    <p class="muted" style="margin-top:14px">Guest mode keeps your data on this device only. You can sign in later and nothing is lost.</p>
+  </div>`;
+}
+function startGuest(){setMode('guest');db=loadFrom(GUEST_KEY);view='today';render();checkPending();}
+function accountCard(){
+  if(mode==='cloud'){
+    const em=fb&&fb.user&&fb.user.email?fb.user.email:'';
+    const st={synced:'Synced ✅',saving:'Saving…',offline:'Offline (will sync later)',loading:'Loading…',idle:'Ready'}[syncState]||'';
+    return `<div class="card"><h3>Account</h3>
+      <div class="muted">Signed in${em?' as <b>'+esc(em)+'</b>':''}. Your data is saved online and works on all your devices.</div>
+      <div class="item"><span>Status</span><b>${st}</b></div>
+      <button class="btn ghost" onclick="signOutUser()">Sign out</button>
+      <button class="btn red" onclick="deleteAccount()">Delete my account</button></div>`;
+  }
+  return `<div class="card"><h3>Account</h3>
+    <div class="muted">You are using <b>guest mode</b>: your data is saved only on this device. Sign in to keep it safe online and use it on other devices. What you entered so far moves to your account.</div>
+    <button class="btn" onclick="showLogin()">Sign in / Create account</button></div>`;
+}
+
+/* ---------- cloud (Firebase): login + sync ----------
+   PASTE YOUR FIREBASE CONFIG BELOW (Firebase console → Project settings → Your apps → Web app).
+   While it is null, the app works in guest mode only.
+   Example:
+   const FIREBASE_CONFIG = { apiKey:"AIza...", authDomain:"my-app.firebaseapp.com", projectId:"my-app", appId:"1:123:web:abc" };
+*/
+const FIREBASE_CONFIG = null;
+const cloudEnabled=()=>!!(FIREBASE_CONFIG&&FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId);
+
+let fb=null, syncState='idle', synced={}, pushTimer=null, pushing=false, pushAgain=false, connectedUid=null, loadingCloud=(mode==='cloud');
+const clean=o=>JSON.parse(JSON.stringify(o));
+function stable(o){
+  if(Array.isArray(o)) return '['+o.map(stable).join(',')+']';
+  if(o&&typeof o==='object') return '{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+stable(o[k])).join(',')+'}';
+  return JSON.stringify(o===undefined?null:o);
+}
+const isEmptyDb=d=>!Object.keys(d.months).length&&!d.expenses.length;
+/* Cloud layout: users/{uid}/months/{YYYY-MM} = {config, expenses[]}  and  users/{uid}/meta/settings = {categories, settings} */
+function slices(d){
+  const out={}, mks=new Set([...Object.keys(d.months),...d.expenses.map(e=>monthOf(e.date))]);
+  mks.forEach(mk=>{out['months/'+mk]={config:d.months[mk]||null,expenses:d.expenses.filter(e=>monthOf(e.date)===mk)};});
+  out['meta/settings']={categories:d.categories,settings:d.settings};
+  return out;
+}
+function assemble(sl){
+  const d=fresh();
+  Object.entries(sl).forEach(([p,v])=>{
+    if(p==='meta/settings'){if(Array.isArray(v.categories)&&v.categories.length)d.categories=v.categories;if(v.settings)d.settings=Object.assign(d.settings,v.settings);}
+    else{const mk=p.slice(7);if(v.config)d.months[mk]=v.config;(v.expenses||[]).forEach(e=>d.expenses.push(e));}
+  });
+  d.expenses.sort((a,b)=>a.date.localeCompare(b.date));
+  return d;
+}
+function mergeDbs(cloud,guest){   // cloud wins on conflicts; guest months/expenses/categories are added
+  const d=clean(cloud);
+  Object.entries(guest.months).forEach(([mk,cfg])=>{if(!d.months[mk])d.months[mk]=clean(cfg);});
+  const ids=new Set(d.expenses.map(e=>e.id));
+  guest.expenses.forEach(e=>{if(!ids.has(e.id)&&d.months[monthOf(e.date)])d.expenses.push(clean(e));});
+  guest.categories.forEach(c=>{if(!d.categories.some(x=>x.toLowerCase()===c.toLowerCase()))d.categories.push(c);});
+  d.expenses.sort((a,b)=>a.date.localeCompare(b.date));
+  return d;
+}
+function mergeLocalWins(cloud,local){   // used after offline edits: nothing added on either side is lost
+  const cs=slices(cloud), ls=slices(local), out={};
+  new Set([...Object.keys(cs),...Object.keys(ls)]).forEach(p=>{
+    const a=cs[p], b=ls[p];
+    if(!a||!b){out[p]=a||b;return;}
+    if(stable(a)===stable(b)){out[p]=b;return;}
+    if(p==='meta/settings'){
+      const cats=[...b.categories]; a.categories.forEach(c=>{if(!cats.some(x=>x.toLowerCase()===c.toLowerCase()))cats.push(c);});
+      out[p]={categories:cats,settings:b.settings};return;
+    }
+    const ids=new Set(b.expenses.map(e=>e.id));   // month edited here: local settings win, expenses from both sides are kept
+    out[p]={config:b.config||a.config,expenses:[...b.expenses,...a.expenses.filter(e=>!ids.has(e.id))]};
+  });
+  return assemble(out);
+}
+function setStatus(s){syncState=s;renderStatus();}
+function renderStatus(){
+  const el=$('#status'); if(!el) return;
+  el.textContent=mode==='guest'?'👤 Guest':mode==='cloud'?({synced:'☁️ Synced',saving:'☁️ Saving…',offline:'📴 Offline',loading:'⏳ Loading',idle:'☁️'}[syncState]||''):'';
+}
+async function loadFirebase(){
+  const base='https://www.gstatic.com/firebasejs/10.14.1/';
+  const [A,Au,F]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')]);
+  const app=A.initializeApp(FIREBASE_CONFIG), auth=Au.getAuth(app);
+  let fs; try{fs=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})});}catch(e){fs=F.getFirestore(app);}
+  return {Au,F,auth,fs,user:null};
+}
+async function ensureFirebase(){
+  if(!cloudEnabled()) throw new Error('cloud-not-configured');
+  if(!fb){fb=await loadFirebase();fb.Au.onAuthStateChanged(fb.auth,authChanged);}
+  return fb;
+}
+function authChanged(user){
+  if(fb) fb.user=user;
+  if(user){
+    if(connectedUid===user.uid) return;
+    connectedUid=user.uid;
+    const fromGuest=mode!=='cloud';
+    setMode('cloud'); closeModal();
+    enterCloud(user,fromGuest);
+  }else if(mode==='cloud'){   // signed out (or session ended)
+    try{if(lastUid)localStorage.removeItem(cacheKey(lastUid));localStorage.removeItem(UID_KEY);localStorage.removeItem(DIRTY_KEY);}catch(e){}
+    lastUid=null;connectedUid=null;synced={};loadingCloud=false;setMode(null);db=fresh();view='today';render();
+  }
+}
+async function fetchCloud(){
+  const {F,fs,user}=fb, out={};
+  (await F.getDocs(F.collection(fs,'users',user.uid,'months'))).forEach(d=>{out['months/'+d.id]=d.data();});
+  const s=await F.getDoc(F.doc(fs,'users',user.uid,'meta','settings'));
+  if(s.exists()) out['meta/settings']=s.data();
+  return out;
+}
+let mergeCtx=null;
+async function enterCloud(user,fromGuest){
+  loadingCloud=true; setStatus('loading'); lastUid=user.uid;
+  try{localStorage.setItem(UID_KEY,user.uid);}catch(e){}
+  let cloud;
+  try{cloud=await fetchCloud();}
+  catch(e){loadingCloud=false;setStatus('offline');toast('Cannot reach the cloud. Using your saved copy.');render();return;}
+  synced={}; Object.entries(cloud).forEach(([p,v])=>{synced[p]=stable(v);});
+  const cloudDb=assemble(cloud), cloudEmpty=isEmptyDb(cloudDb);
+  if(fromGuest){
+    const g=loadFrom(GUEST_KEY);
+    if(isEmptyDb(g)) db=cloudDb;
+    else if(cloudEmpty) db=g;
+    else{mergeCtx={cloudDb,g};loadingCloud=false;db=cloudDb;render();askMerge();return;}
+  }else{
+    const cache=loadFrom(cacheKey(user.uid)); let dirty=false; try{dirty=localStorage.getItem(DIRTY_KEY)==='1';}catch(e){}
+    if(cloudEmpty&&!isEmptyDb(cache)) db=cache;
+    else if(dirty&&!isEmptyDb(cache)) db=mergeLocalWins(cloudDb,cache);
+    else db=cloudDb;
+  }
+  finishEnter();
+}
+function finishEnter(){loadingCloud=false;save();setStatus('saving');render();checkPending();}
+function askMerge(){
+  openModal(`<h2>Your account already has data</h2>
+    <p>This device also has guest data. What should we do?</p>
+    <button class="btn" onclick="doMerge(true)">Merge both (recommended)</button>
+    <button class="btn ghost" onclick="doMerge(false)">Use my account data only</button>
+    <p class="muted" style="margin-top:12px">Your guest data stays on this device either way.</p>`,true);
+}
+function doMerge(both){
+  db=both?mergeDbs(mergeCtx.cloudDb,mergeCtx.g):mergeCtx.cloudDb; mergeCtx=null; closeModal(); finishEnter();
+}
+function schedulePush(){clearTimeout(pushTimer);setStatus('saving');pushTimer=setTimeout(()=>pushChanges(),800);}
+async function pushChanges(){
+  if(mode!=='cloud'||!fb||!fb.user||loadingCloud) return;
+  if(pushing){pushAgain=true;return;}
+  pushing=true;
+  try{
+    const {F,fs,user}=fb, cur=slices(db), ps=[];
+    for(const [p,val] of Object.entries(cur)){
+      const s=stable(val); if(synced[p]===s) continue;
+      ps.push(F.setDoc(F.doc(fs,'users',user.uid,...p.split('/')),clean(val))); synced[p]=s;
+    }
+    for(const p of Object.keys(synced)) if(!(p in cur)){ps.push(F.deleteDoc(F.doc(fs,'users',user.uid,...p.split('/'))));delete synced[p];}
+    ps.forEach(x=>x.catch(()=>{}));
+    let ok=false;
+    await Promise.race([F.waitForPendingWrites(fs).then(()=>{ok=true;}),new Promise(r=>setTimeout(r,6000))]);
+    if(ok){try{localStorage.removeItem(DIRTY_KEY);}catch(e){}setStatus('synced');}else setStatus('offline');
+  }catch(e){setStatus('offline');}
+  finally{pushing=false;if(pushAgain){pushAgain=false;pushChanges();}}
+}
+async function refreshCloud(){   // pick up changes made on another device
+  if(mode!=='cloud'||!fb||!fb.user||loadingCloud||pushing) return;
+  try{
+    if(localStorage.getItem(DIRTY_KEY)==='1') return;
+    const cloud=await fetchCloud(), cs={}; Object.entries(cloud).forEach(([p,v])=>{cs[p]=stable(v);});
+    if(stable(cs)!==stable(synced)){
+      synced=cs; db=assemble(cloud);
+      try{localStorage.setItem(cacheKey(fb.user.uid),JSON.stringify(db));}catch(e){}
+      render();checkPending();
+    }
+  }catch(e){}
+}
+const AUTH_ERR={
+  'auth/invalid-email':'That email address looks wrong.','auth/missing-password':'Enter your password.',
+  'auth/weak-password':'Password must be at least 6 characters.','auth/email-already-in-use':'That email already has an account. Try signing in.',
+  'auth/invalid-credential':'Wrong email or password.','auth/user-not-found':'Wrong email or password.','auth/wrong-password':'Wrong email or password.',
+  'auth/too-many-requests':'Too many tries. Wait a bit and try again.','auth/network-request-failed':'No internet connection.',
+  'auth/popup-closed-by-user':'','auth/cancelled-popup-request':'',
+  'auth/popup-blocked':'Popup was blocked. Use email and password instead.','auth/operation-not-supported-in-this-environment':'Google sign-in does not work here. Use email and password instead.',
+  'auth/unauthorized-domain':'This website address is not allowed yet. Add it in Firebase → Authentication → Settings → Authorized domains.',
+  'auth/operation-not-allowed':'This login method is not turned on in Firebase.','auth/requires-recent-login':'For safety, sign out, sign in again, then retry.'
+};
+const authMsg=e=>{const m=AUTH_ERR[e&&e.code];return m===''?'':(m||'Something went wrong. Try again.');};
+function showLogin(){
+  if(!cloudEnabled()){
+    openModal('<h2>Online accounts are not set up yet</h2><p class="muted">The owner of this site needs to add the Firebase settings first. Guest mode works fine in the meantime.</p><button class="btn" onclick="closeModal()">OK</button>');
+    return;
+  }
+  ensureFirebase().catch(()=>{});   // preload so the Google popup can open instantly on tap
+  openModal(`<h2>Sign in to sync</h2><p class="muted">Your data is saved online and works on every device.</p>
+    <button class="btn ghost" onclick="googleLogin()">Continue with Google</button>
+    <div class="or">or use email</div>
+    <input id="aEmail" type="email" placeholder="Email" autocomplete="email">
+    <input id="aPass" type="password" placeholder="Password (at least 6 characters)" autocomplete="current-password" style="margin-top:8px">
+    <div class="row"><button class="btn" onclick="emailAuth('in')">Sign in</button><button class="btn ghost" onclick="emailAuth('up')">Create account</button></div>
+    <button class="linkbtn" onclick="resetPass()">Forgot password?</button>
+    <button class="linkbtn" onclick="closeModal()">Cancel</button>`);
+}
+function googleLogin(){
+  if(!fb){toast('Loading… tap again in a moment');ensureFirebase().catch(()=>toast('No internet connection.'));return;}
+  fb.Au.signInWithPopup(fb.auth,new fb.Au.GoogleAuthProvider()).catch(e=>{const m=authMsg(e);if(m)toast(m);});
+}
+async function emailAuth(kind){
+  const email=$('#aEmail').value.trim(), pw=$('#aPass').value;
+  if(!email||!pw) return toast('Enter your email and password');
+  try{
+    await ensureFirebase();
+    if(kind==='up') await fb.Au.createUserWithEmailAndPassword(fb.auth,email,pw);
+    else await fb.Au.signInWithEmailAndPassword(fb.auth,email,pw);
+  }catch(e){const m=authMsg(e);if(m)toast(m);}
+}
+async function resetPass(){
+  const email=$('#aEmail').value.trim(); if(!email) return toast('Type your email first');
+  try{await ensureFirebase();await fb.Au.sendPasswordResetEmail(fb.auth,email);toast('Reset email sent. Check your inbox and spam.');}
+  catch(e){const m=authMsg(e);if(m)toast(m);}
+}
+async function signOutUser(){
+  let dirty=false; try{dirty=localStorage.getItem(DIRTY_KEY)==='1';}catch(e){}
+  if(!confirm(dirty?'Some changes are not synced yet and will be lost. Sign out anyway?':'Sign out? Your data stays safe in your account.')) return;
+  try{await fb.Au.signOut(fb.auth);}catch(e){toast('Could not sign out right now. Check your internet.');}
+}
+async function deleteAccount(){
+  if(!confirm('Delete your account and ALL your data online? This cannot be undone.')||!confirm('Really delete the account?')) return;
+  try{
+    const {F,fs,user}=fb;
+    const ms=await F.getDocs(F.collection(fs,'users',user.uid,'months'));
+    for(const d of ms.docs) await F.deleteDoc(d.ref);
+    await F.deleteDoc(F.doc(fs,'users',user.uid,'meta','settings'));
+    await fb.Au.deleteUser(fb.auth.currentUser);   // triggers authChanged(null), which clears this device
+    toast('Account deleted');
+  }catch(e){toast(authMsg(e)||'Could not delete the account');}
+}
+
+/* ---------- render ---------- */
+function render(){
+  const nav=document.querySelector('nav');
+  if(!mode){
+    $('#app').innerHTML=vWelcome(); nav.style.display='none'; $('#sub').textContent=''; renderStatus(); return;
+  }
+  nav.style.display='';
+  $('#sub').textContent=new Date().toLocaleDateString('en',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(mode==='cloud'&&loadingCloud&&isEmptyDb(db)){
+    $('#app').innerHTML='<div class="empty">⏳ Loading your data…</div>'; $('#nav').innerHTML=''; renderStatus(); return;
+  }
+  const V={today:vToday,history:vHistory,reports:vReports,savings:vSavings,settings:vSettings};
+  $('#app').innerHTML=V[view]();
+  $('#nav').innerHTML=NAV.map(([k,i,t])=>`<button class="${k===view?'on':''}" onclick="go('${k}')"><b>${i}</b>${t}</button>`).join('');
+  if(setupCtx) previewSetup();
+  drawCharts();
+  renderStatus();
+}
+window.addEventListener('resize',drawCharts);
+window.addEventListener('online',()=>{if(mode==='cloud'&&fb)pushChanges();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();checkPending();refreshCloud();}});
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();checkPending();
+if(mode==='cloud'){
+  if(!cloudEnabled()){loadingCloud=false;setMode(null);render();}
+  else ensureFirebase().catch(()=>{loadingCloud=false;setStatus('offline');render();});
+}
+</script>
+</body>
+</html>
+
+{
+  "name": "Daily Cost Calculator",
+  "short_name": "Daily Cost",
+  "description": "Set your monthly money, get a daily spending limit, track expenses and save more.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f5f7",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
+
+/* Service worker: lets the app open instantly, work offline and be installed on the home screen.
+   Strategy: your own files = network first (so updates arrive), cache as fallback.
+   Firebase library files = cached after first use so the app can start offline.
+   Login and database traffic is never touched here. */
+const VER = 'dcc-v2';
+const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(VER).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== VER).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+
+  if (url.origin === self.location.origin) {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
+          if (res.ok) { const copy = res.clone(); caches.open(VER).then(c => c.put(req, copy)); }
+          return res;
+        })
+        .catch(() => caches.match(req).then(hit => hit || caches.match('index.html')))
+    );
+  } else if (url.hostname === 'www.gstatic.com' && url.pathname.indexOf('/firebasejs/') === 0) {
+    e.respondWith(
+      caches.open(VER).then(cache =>
+        cache.match(req).then(hit => {
+          const net = fetch(req).then(res => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => hit);
+          return hit || net;
+        })
+      )
+    );
+  }
+});
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0f766e"/>
+  <circle cx="256" cy="256" r="170" fill="#ffffff"/>
+  <rect x="168" y="270" width="44" height="60" fill="#0f766e"/>
+  <rect x="234" y="230" width="44" height="100" fill="#0f766e"/>
+  <rect x="300" y="190" width="44" height="140" fill="#0f766e"/>
+</svg>
